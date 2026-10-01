@@ -1,0 +1,302 @@
+# 📅 2026-10-01 — Tsegazeab Fikre
+
+**Roadmap Track:** AI Security — Prompt Injection Firewall
+**Focus:** Week 1 — Friday P1 Task
+
+---
+
+## ✅ What I Did Today
+
+Today, I worked on the **Week 1 Friday P1 task** for the team's AI Prompt Injection Firewall project.
+
+### 🔹 Git Workflow
+
+* Created my feature branch from `main`:
+
+  ```text
+  feature/tsegazeab-layer2-first-version
+  ```
+* Committed **only my assigned file** instead of using `git add .`.
+* Pushed the branch to GitHub.
+* Opened **PR #24** targeting `main`.
+
+### 🔹 Layer 2 Classifier
+
+Created:
+
+```text
+src/engine/layer2_classifier.py
+```
+
+The module is currently standalone and **not yet wired into the main pipeline**.
+
+It provides:
+
+* `load()` — loads the local ONNX model and tokenizer.
+* `predict()` — converts input text into an injection score between `0.0` and `1.0`.
+* `ClassifierUnavailable` — provides clear errors when:
+
+  * the model is missing,
+  * the tokenizer is missing, or
+  * `predict()` is called before `load()`.
+
+### 🔹 Real Model Testing
+
+Downloaded and tested:
+
+```text
+filip-w/PIGuard-onnx
+```
+
+The model was tested locally using **CPU inference** with four prompts:
+
+| Prompt Type |  Result |
+| ----------- | ------: |
+| Jailbreak   | `1.000` |
+| Jailbreak   | `0.986` |
+| Benign      | `0.001` |
+| Benign      | `0.038` |
+
+These results confirmed that the classifier was producing the expected score direction for the test prompts.
+
+### 🔹 Pull Request
+
+Opened **PR #24** with:
+
+* Implementation
+* Test results
+* Model notes
+* Performance observations
+* Known limitations
+
+---
+
+## 📚 What I Learned
+
+### 🧠 Prompt Injection Scoring
+
+Learned how to convert model logits into an injection probability using:
+
+* **Softmax** for multi-class outputs
+* **Sigmoid** for a single-logit output
+
+I also learned how to select the correct class using the model's label index.
+
+### 🏷️ Model Validation
+
+The model documentation specifies:
+
+```text
+0 = benign
+1 = injection
+```
+
+I learned that the label order should be **verified from the model documentation and confirmed with real test prompts**, rather than simply assumed.
+
+### ⚙️ ONNX Inference
+
+Learned how to:
+
+* Load an ONNX model using `onnxruntime`
+* Load the tokenizer using `tokenizers`
+* Inspect the model's declared inputs
+* Provide only the inputs required by the ONNX model
+
+### 🐍 Python Environments on Kali
+
+Kali Linux prevents system-wide `pip` installations because of its externally managed Python environment.
+
+The correct approach is to use a virtual environment:
+
+```bash
+python3 -m venv .venv
+```
+
+I also learned that `pipx` is primarily intended for installing **command-line applications**, not project dependencies.
+
+### 🔀 Team Git Workflow
+
+Learned to:
+
+1. Check the current branch.
+2. Check `git status`.
+3. Stage only the files assigned to me.
+4. Commit the intended changes.
+5. Push the feature branch.
+6. Open a PR for review.
+
+This is safer than blindly using:
+
+```bash
+git add .
+```
+
+### 📦 Dependency Handling
+
+Learned that heavy dependencies can be imported **inside functions** rather than at module startup.
+
+This allows the rest of the application to start even when optional ML dependencies are not installed.
+
+---
+
+## 🚧 Blockers & Issues
+
+### 💾 Large Model Download
+
+The model download was approximately:
+
+```text
+1.12 GB
+```
+
+The repository does not contain the model files, so I had to download them locally.
+
+### 🐍 Kali Python Environment
+
+The first dependency installation failed because of Kali's externally managed Python environment.
+
+I resolved this by creating and using a virtual environment.
+
+### 🌿 Branch Structure
+
+The repository does not have a `develop` branch.
+
+Therefore, I:
+
+```text
+main
+  ↓
+feature/tsegazeab-layer2-first-version
+```
+
+and targeted `main` with PR #24.
+
+### ⏱️ Layer 2 Latency
+
+Observed inference latency was approximately:
+
+```text
+65–187 ms per prompt
+```
+
+This is higher than the **low-double-digit millisecond target** mentioned in the model README.
+
+However, these measurements were from individual runs and **not from a proper statistical benchmark**, so more testing is needed.
+
+### 📝 `.gitignore` Issue
+
+Git currently shows:
+
+```text
+src/models/tokenizer/tokenizer.json
+```
+
+as untracked.
+
+This indicates that `.gitignore` is missing an appropriate rule for the tokenizer.
+
+The current PR is **not affected**, but this makes:
+
+```bash
+git add .
+```
+
+potentially risky.
+
+### 🔍 PR Review
+
+PR #24 currently requires:
+
+```text
+1 approving review
+```
+
+before it can be merged.
+
+---
+
+## 🎯 Plan for Tomorrow
+
+### 1. Review PR #24
+
+* Ask a teammate to review PR #24.
+* Respond to any review comments.
+* Make any required changes.
+
+### 2. Fix `.gitignore`
+
+Create a separate, small PR to ignore:
+
+```text
+src/models/_download/
+```
+
+and tokenizer contents while keeping:
+
+```text
+.gitkeep
+```
+
+tracked where necessary.
+
+### 3. Compare Layer 2 Results
+
+Compare notes with **Biruktawit** regarding:
+
+* Model files
+* Model configuration
+* Test prompts
+* Injection scores
+* Observed results
+
+### 4. Plan Week 2 Improvements
+
+Prepare the next iteration of Layer 2:
+
+* Model warm-up
+* Proper latency benchmarking
+* Average / percentile latency measurements
+* Async inference
+* Testing `model_fp16.onnx`
+* Investigating ways to reduce inference latency
+
+### 5. Week 1 Checkpoint
+
+After all Friday PRs are merged:
+
+1. Start the complete stack.
+2. Seed the security rules.
+3. Send one clean request.
+4. Send one malicious request.
+5. Verify the resulting `threat_logs` rows.
+6. Confirm that the complete Week 1 flow works together.
+
+---
+
+## 🔥 Daily Reflection
+
+> **Today, I learned that finishing a task means testing it with the real model—not only writing the code.**
+
+The score direction, label index, and real inference latency came from actually running the model. Those results are important because they give the next teammate a real baseline for **Week 2 optimization**.
+
+I also learned that environment setup and team workflow can take as much attention as the code itself.
+
+Using a virtual environment, keeping large model files out of Git, committing only my assigned changes, and writing a clear PR description made the work **safer, cleaner, and easier for the team to review and continue**.
+
+---
+
+### 📌 Status
+
+| Area                         | Status                   |
+| ---------------------------- | ------------------------ |
+| Layer 2 implementation       | ✅ Complete               |
+| Local ONNX testing           | ✅ Complete               |
+| Real model validation        | ✅ Complete               |
+| Git branch                   | ✅ Complete               |
+| PR #24                       | 🟡 Awaiting review       |
+| `.gitignore` cleanup         | ⏳ Planned                |
+| Layer 2 pipeline integration | ⏳ Future task            |
+| Latency optimization         | ⏳ Week 2                 |
+| Week 1 checkpoint            | ⏳ After Friday PRs merge |
+
+**Overall:** 🟢 **Week 1 Friday P1 task completed and submitted for review.**
