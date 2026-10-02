@@ -20,7 +20,7 @@
 | Metric | Value |
 |---|---|
 | Logs this week | — |
-| Commits this week | — |
+| Commits this week | 2 |
 | Longest streak | — |
 | Member since | `YYYY-MM-DD` |
 
