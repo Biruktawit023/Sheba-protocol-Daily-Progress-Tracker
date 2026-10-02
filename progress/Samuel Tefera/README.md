@@ -22,7 +22,6 @@
 | Longest streak | — |
 | Member since | `YYYY-MM-DD` |
 
-*(Update manually each week, or leave blank — the org-wide leaderboard tracks commits automatically.)*
 
 ---
 ---
