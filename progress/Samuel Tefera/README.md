@@ -1,17 +1,16 @@
-# 👤 `<Your Name>` — Progress Log
+👤 **Samuel Tefera** — Progress Log
 
 ![Track](https://img.shields.io/badge/Track-Web%20AppSec-2563EB?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Active-22C55E?style=flat-square)
 
-> Personal daily-log folder for **`<Your Name>`** — part of the **Queen Sheba Protocol** security team.
+> Personal daily-log folder for **Samuel Tefera** — part of the **Queen Sheba Protocol** security team.
 
 ---
 
-## 🎯 Roadmap Track
+🎯 Roadmap Track
 
-**Track:** Web AppSec `|` Network Security `|` Reverse Engineering `|` Cloud Security
-**Focus this month:** *(e.g. OWASP Top 10 — Burp Suite fundamentals)*
-
+**Track:**|` Reverse Engineering `|`Mobile App Security
+**Focus this month:** TCM Academy Mobile Security Course
 ---
 
 ## 📊 Quick Stats
