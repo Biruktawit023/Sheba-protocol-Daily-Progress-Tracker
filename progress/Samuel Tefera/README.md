@@ -6,8 +6,7 @@
 > Personal daily-log folder for **Samuel Tefera** — part of the **Queen Sheba Protocol** security team.
 
 ---
-
-🎯 Roadmap Track
+#🎯 Roadmap Track
 
 **Track:**|` Reverse Engineering `|`Mobile App Security
 **Focus this month:** TCM Academy Mobile Security Course
