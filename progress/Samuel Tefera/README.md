@@ -19,7 +19,7 @@
 | Logs this week | — |
 | Commits this week | — |
 | Longest streak | — |
-| Member since | `YYYY-MM-DD` |
+| Member since | `2026-09-04` |
 
 
 ---
