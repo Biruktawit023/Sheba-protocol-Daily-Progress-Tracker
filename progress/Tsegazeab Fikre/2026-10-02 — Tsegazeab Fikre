@@ -1,0 +1,549 @@
+# 📅 2026-10-02 — Tsegazeab Fikre
+
+> **Roadmap Track:** AI Security — Prompt Injection Firewall
+> **Focus:** Week 1 — Wednesday P1 Task: Proxy Handler + Bug Fix
+
+---
+
+## 🚀 Today's Progress
+
+Today I completed the **Week 1 Wednesday P1 task**, implementing the OpenAI-compatible proxy handler for the Prompt Injection Firewall.
+
+I also fixed a database compatibility bug discovered when a teammate tested the handler against a **real PostgreSQL database**.
+
+The main lesson from today was simple:
+
+> **Passing my tests does not always mean the implementation is correct. The real system can reveal problems that mocks hide.**
+
+---
+
+## 🔐 1. Proxy Handler Implementation
+
+Implemented:
+
+```text
+src/proxy/handler.py
+```
+
+The handler provides the initial proxy layer for the firewall.
+
+### ✨ Main Features
+
+* `POST /v1/chat/completions`
+* `GET /healthz`
+* `_extract_prompt_and_system()` for extracting:
+
+  * The latest user message
+  * All system messages
+  * String content
+  * Typed-list content containing text and image parts
+* Temporary `_inspect()` wrapper around:
+
+```python
+layer1_engine.evaluate()
+```
+
+> **TODO(P5, Fri):** Replace `_inspect()` with `run_pipeline()`.
+
+### 🧩 Request Metadata
+
+Each request captures:
+
+* UUID request ID
+* `X-Application-Id`
+* Client IP
+* Model name
+
+### 📝 Threat Logging
+
+Each request creates **one threat-log write** using FastAPI `BackgroundTasks`.
+
+### 🛡️ Layer 1 Blocking
+
+If Layer 1 detects a match:
+
+```text
+403 Forbidden
+```
+
+and:
+
+```text
+forward_to_llm()
+```
+
+is **not called**.
+
+For clean requests, the request is forwarded normally and the LLM response is returned unchanged.
+
+---
+
+## 🧪 2. Testing
+
+I tested the handler without depending on the teammates' unfinished modules by temporarily stubbing:
+
+```text
+storage
+forwarder
+```
+
+### Tests Performed
+
+* Prompt extraction
+* System-message extraction
+* `_inspect()`
+* Full `/v1/chat/completions` endpoint
+* Clean request flow
+* Layer 1 blocking flow
+* Threat-log calls
+* Health endpoint
+
+Initially, Layer 1 contained:
+
+```text
+rule_count = 0
+```
+
+So I loaded a test rule using:
+
+```python
+set_rules()
+```
+
+to verify the blocking path.
+
+### ✅ Results
+
+| Test                             |                    Result |
+| -------------------------------- | ------------------------: |
+| `/healthz`                       |                  `200 OK` |
+| Clean request                    |               ✅ Forwarded |
+| Layer 1 match                    |      ✅ Blocked with `403` |
+| Blocked request forwarded to LLM |                      ❌ No |
+| Threat-log write                 | ✅ Exactly one per request |
+
+---
+
+## 🔀 3. Pull Requests & Git Workflow
+
+### Original Implementation
+
+The proxy handler was submitted and merged as:
+
+```text
+PR #23
+```
+
+### Bug Fix
+
+After a teammate tested the implementation against a real PostgreSQL database, the following problem appeared:
+
+```text
+write_threat_log → database constraint failure
+```
+
+I created a separate fix branch:
+
+```text
+feature/tsegazeab-fix-log-values
+```
+
+Only `handler.py` was changed.
+
+```text
+4 lines changed
+```
+
+The fix was pushed and submitted as:
+
+```text
+Fix PR: #<number>
+```
+
+---
+
+## 🐞 4. Database Naming Bug
+
+The problem was caused by values written by the handler not matching the values allowed by the database constraints.
+
+### Before → After
+
+| Field             | Before                | After                |
+| ----------------- | --------------------- | -------------------- |
+| `action_taken`    | `blocked` / `allowed` | `BLOCKED` / `PASSED` |
+| `triggered_layer` | `layer_1` / `None`    | `LAYER_1` / `NONE`   |
+
+The allowed values are defined by the **SRS**, so the implementation must follow those exact values.
+
+---
+
+## 🔍 5. Review of `models.py`
+
+While investigating the database issue, I compared P3's `models.py` CHECK constraints against the SRS.
+
+I found **three naming mismatches**.
+
+### `check_triggered_layer`
+
+Incorrect:
+
+```text
+LAYER 1
+LAYER 2
+LAYER 3
+```
+
+Expected:
+
+```text
+LAYER_1
+LAYER_2
+LAYER_3
+```
+
+### `check_category`
+
+Incorrect:
+
+```text
+PROMPT LEAK
+```
+
+Expected:
+
+```text
+PROMPT_LEAK
+```
+
+### `check_audit_action`
+
+The audit-action values were also using spaces instead of underscores.
+
+I sent P3 the exact lines that need to be changed and the required steps.
+
+---
+
+# 📚 What I Learned
+
+## 1. 📖 Read the SRS First
+
+The task description did not contain all the database values.
+
+The SRS defines values such as:
+
+```text
+PASSED
+BLOCKED
+REDACTED
+
+NONE
+LAYER_1
+LAYER_2
+LAYER_3
+```
+
+I initially implemented the correct logic but used the wrong database values.
+
+### Lesson
+
+> **Before writing values that interact with the database, check the SRS and database model first.**
+
+---
+
+## 2. 🧪 Mocks Can Hide Real Bugs
+
+My tests mocked:
+
+```python
+write_threat_log()
+```
+
+Because of that, the database never validated the values.
+
+The real PostgreSQL database immediately exposed the problem through its:
+
+```text
+CHECK constraints
+NOT NULL constraints
+```
+
+### Lesson
+
+> **Mocks are useful for unit testing, but they cannot replace testing against the real database.**
+
+---
+
+## 3. ⚡ FastAPI Background Tasks
+
+I learned an important behavior around background logging.
+
+For the blocked response, I used:
+
+```python
+JSONResponse(...)
+```
+
+instead of raising:
+
+```python
+HTTPException(...)
+```
+
+This allows the background threat-log task to run before the response lifecycle completes.
+
+---
+
+## 4. 🔀 Better Git Discipline
+
+Today's work reinforced several Git practices:
+
+### Check the branch before editing
+
+```bash
+git branch --show-current
+```
+
+I accidentally found myself on a teammate's branch before making changes and corrected it in time.
+
+### Stage only the intended file
+
+Instead of:
+
+```bash
+git add .
+```
+
+use:
+
+```bash
+git add src/proxy/handler.py
+```
+
+This is especially important because:
+
+```text
+src/models/tokenizer/tokenizer.json
+```
+
+is still untracked.
+
+### Follow-up fixes get their own branch
+
+After the original PR was merged, I created a new branch from the updated `main` for the database-value fix.
+
+---
+
+## 5. 🛠️ Testing Without Teammates' Code
+
+When teammates' modules were not ready, I used fake modules through:
+
+```python
+sys.modules
+```
+
+This allowed `handler.py` to be imported and tested without requiring the unfinished:
+
+```text
+storage.py
+forwarder.py
+```
+
+This was useful for isolating the handler's behavior.
+
+---
+
+# 🚧 Current Issues & Blockers
+
+## 🐞 Database Naming Mismatch
+
+My handler values have been corrected.
+
+However, blocked requests can still fail until P3 updates the corresponding CHECK constraint in:
+
+```text
+models.py
+```
+
+---
+
+## 🗄️ Existing Database Tables
+
+Changing `models.py` does **not automatically update constraints on existing tables**.
+
+After P3's fix is merged, local databases may need to be recreated.
+
+For example:
+
+```text
+Drop old tables
+        ↓
+Create tables again
+        ↓
+Apply corrected constraints
+        ↓
+Run tests
+```
+
+---
+
+## 📝 Untracked File
+
+This file is still untracked:
+
+```text
+src/models/tokenizer/tokenizer.json
+```
+
+Therefore:
+
+> Avoid using `git add .` until this file is understood and intentionally handled.
+
+---
+
+## 🔍 Layer 1 Rules
+
+Currently, the Layer 1 engine starts with:
+
+```text
+rule_count = 0
+```
+
+until:
+
+```text
+load_rules()
+```
+
+runs during application startup.
+
+Therefore, without rule loading, the proxy will not block Layer 1 matches.
+
+This belongs to the component responsible for `main.py` / application startup.
+
+---
+
+# 🎯 Plan for Tomorrow
+
+## 1. 🔀 Fix PR
+
+* Ask a teammate to review the fix PR.
+* Get the handler naming fix merged.
+* Confirm P3's `models.py` changes are merged.
+
+## 2. 🗄️ Real PostgreSQL Testing
+
+After both changes are merged:
+
+### Clean request
+
+```text
+Client → Proxy → Layer 1 → LLM
+```
+
+Verify:
+
+* Request succeeds
+* Threat log is created
+* Database values are valid
+
+### Blocked request
+
+```text
+Client → Proxy → Layer 1 → 403
+```
+
+Verify:
+
+* Request is blocked
+* LLM is not called
+* Threat log is created
+* `triggered_layer = LAYER_1`
+* `action_taken = BLOCKED`
+
+---
+
+## 3. 🔗 Friday P5 Handoff
+
+When P5 starts:
+
+Replace:
+
+```python
+_inspect()
+```
+
+with:
+
+```python
+run_pipeline()
+```
+
+Also remove the temporary risk-score TODO and use:
+
+```python
+PipelineResult.risk_score
+```
+
+---
+
+## 4. 📏 Team Naming Rule
+
+I will propose a simple team rule:
+
+> **Database enum/check values must be copied directly from the SRS, and every database-writing feature should be tested against a real PostgreSQL instance before merging.**
+
+---
+
+# 🔥 Daily Reflection
+
+> **Today, I learned that passing my own tests isn't the same as being correct. The SRS defined the values, and only a real database could prove them.**
+
+I implemented the correct logic but used the wrong database values.
+
+My mocks hid the problem because the database was never involved.
+
+A teammate's real PostgreSQL test exposed the issue, and comparing `models.py` against the SRS revealed another set of similar mismatches.
+
+This taught me two important habits:
+
+1. **Read the specification before implementing database-facing values.**
+2. **Test the important paths against the real system, not only mocks.**
+
+This bug was caught before it became a bigger integration problem, which made the debugging process a useful part of the learning.
+
+---
+
+# 📊 Status
+
+| Area                         |       Status       |
+| ---------------------------- | :----------------: |
+| Proxy handler — PR #23       |      ✅ Merged      |
+| Handler tests                |     ✅ Complete     |
+| Naming fix in `handler.py`   |      ✅ Pushed      |
+| Fix PR                       | 🟡 Awaiting Review |
+| `models.py` constraint fix   |        ⏳ P3        |
+| Real PostgreSQL re-test      |      ⏳ Pending     |
+| `run_pipeline()` integration |     ⏳ Friday P5    |
+
+---
+
+## 🟢 Overall Status
+
+**Wednesday P1 task completed.**
+
+The proxy handler is implemented and the original PR has been merged. A database-value mismatch was discovered during real PostgreSQL testing, fixed in a separate branch, and submitted for review.
+
+The remaining integration work is:
+
+```text
+Handler Fix
+    ↓
+P3 models.py Fix
+    ↓
+Real PostgreSQL Re-test
+    ↓
+Friday P5
+run_pipeline() Integration
+```
+
+**Status: 🟢 P1 Complete | 🟡 Integration Fix Pending**
