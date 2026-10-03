@@ -20,8 +20,8 @@
 | Metric | Value |
 |---|---|
 | Logs this week | — |
-| Commits this week | 2 |
-| Longest streak | — |
+| Commits this week | 1 |
+| Longest streak | 2 |
 | Member since | `YYYY-MM-DD` |
 
 *(Update manually each week, or leave blank — the org-wide leaderboard tracks commits automatically.)*
